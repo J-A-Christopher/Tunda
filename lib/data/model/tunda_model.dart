@@ -1,13 +1,13 @@
-import 'package:tflite_flutter/tflite_flutter.dart';
+import 'package:tflite_flutter_plus/tflite_flutter_plus.dart';
 
 class ClassifierModel {
   Interpreter interpreter;
   List<int> inputShape;
   List<int> outputShape;
-  final inputType;
+  TfLiteType inputType;
   //TfLiteType outputType;
   //TensorType inputType;
-  TensorType outputType;
+  TfLiteType outputType;
   ClassifierModel(
       {required this.inputShape,
       required this.inputType,
