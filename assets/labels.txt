@@ -1,0 +1,1 @@
+"healthy", "multiple_diseases", "rust", "scab"
