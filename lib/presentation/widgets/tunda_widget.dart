@@ -26,8 +26,8 @@ class _TundaWidgetState extends State<TundaWidget> {
       // if (context.mounted) {
       selectedImg = File(pickedImage!.path);
       //Uint8List bytes = await selectedImg!.readAsBytes();
-      img.Image image = img.Image.fromBytes(224, 224, bytes);
-      print(image.height);
+      img.Image? image = img.decodeImage(selectedImg!.readAsBytesSync());
+      print(image!.height);
       if (context.mounted) {
         context.read<FruitTesterBloc>().add(LoadData(convertedImage: image));
       }

@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:image/image.dart' as img;
 
 import 'package:tflite_flutter_helper_plus/tflite_flutter_helper_plus.dart';
+import 'package:tflite_flutter_plus/tflite_flutter_plus.dart';
 import 'package:tunda/data/datasources/label_datasource.dart';
 import 'package:tunda/data/repository/fruit_repo.dart';
 
@@ -18,8 +19,10 @@ class FruitTesterBloc extends Bloc<FruitTesterEvent, FruitTesterState> {
         emit(FruitTesterLoading());
         final labelDs = LabelDataSource().loadLabels();
         final fRipo = await FruitRepo().loadModel();
+        final interpreter = await Interpreter.fromAsset('jaguh.tflite',
+            options: InterpreterOptions());
 
-        TensorImage preProcessInput(img.Image picture) {
+        TensorImage preProcessInput(picture) {
           final inputTensor = TensorImage(fRipo.inputType);
 
           inputTensor.loadImage(picture);
@@ -43,34 +46,28 @@ class FruitTesterBloc extends Bloc<FruitTesterEvent, FruitTesterState> {
               .add(normalizeOp)
               .build()
               .process(inputTensor);
-
-          //    ImageProcessorBuilder()
-          //       .add(cropOp)
-          //       .add(resizeOp)
-          //       .add(normalizeOp)
-          //       .build();
-          //   imageProcessor.process(inputTensor);
-          //   return inputTensor;
         }
 
-        img.Image convertedImage = event.convertedImage;
+        var convertedImage = event.convertedImage;
 
         final inputImage = preProcessInput(convertedImage);
         print(inputImage);
         print(
             'Pre-processed image: ${inputImage.width}x ${inputImage.height} size: ${inputImage.buffer.lengthInBytes}bytes');
+        print(fRipo.outputShape);
+        print(fRipo.outputType);
 
         final outputBuffer =
             TensorBuffer.createFixedSize(fRipo.outputShape, fRipo.outputType);
-        fRipo.interpreter.run(inputImage.buffer, outputBuffer.buffer);
-        print('Out[putBuffer: ${outputBuffer.getDoubleList()}]');
+        interpreter.run(inputImage.buffer, outputBuffer.getBuffer());
+        print('OutputBuffer: ${outputBuffer.getDoubleList()}]');
 
         await Future.delayed(
           const Duration(seconds: 3),
         );
         emit(const FruitTesterLoaded(greeting: 'Hey pal'));
-      } catch (e) {
-        print(e.toString());
+      } catch (e, stackTrace) {
+        print('${e.toString()} stacktrace: $stackTrace');
       }
     });
   }

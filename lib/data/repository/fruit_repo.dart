@@ -7,7 +7,8 @@ import 'package:tunda/data/model/tunda_model.dart';
 
 class FruitRepo {
   Future<ClassifierModel> loadModel() async {
-    final interpreter = await Interpreter.fromAsset('jaguh.tflite');
+    final interpreter = await Interpreter.fromAsset('jaguh.tflite',
+        options: InterpreterOptions());
     final inputShape = interpreter.getInputTensor(0).shape;
     final outputShape = interpreter.getOutputTensor(0).shape;
     debugPrint('InputShape: $inputShape');
