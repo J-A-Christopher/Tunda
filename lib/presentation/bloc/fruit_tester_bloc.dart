@@ -1,12 +1,14 @@
 import 'dart:math';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 
 import 'package:tflite_flutter_helper_plus/tflite_flutter_helper_plus.dart';
 import 'package:tflite_flutter_plus/tflite_flutter_plus.dart';
 import 'package:tunda/data/datasources/label_datasource.dart';
 import 'package:tunda/data/repository/fruit_repo.dart';
+import 'package:tunda/presentation/widgets/classifier_cat.dart';
 
 part 'fruit_tester_event.dart';
 part 'fruit_tester_state.dart';
@@ -17,10 +19,9 @@ class FruitTesterBloc extends Bloc<FruitTesterEvent, FruitTesterState> {
       try {
         emit(FruitTesterInitial());
         emit(FruitTesterLoading());
-        final labelDs = LabelDataSource().loadLabels();
+        final labelDs = await LabelDataSource().loadLabels();
+        print('Jesse:${labelDs[0]}');
         final fRipo = await FruitRepo().loadModel();
-        final interpreter = await Interpreter.fromAsset('jaguh.tflite',
-            options: InterpreterOptions());
 
         TensorImage preProcessInput(picture) {
           final inputTensor = TensorImage(fRipo.inputType);
@@ -59,13 +60,55 @@ class FruitTesterBloc extends Bloc<FruitTesterEvent, FruitTesterState> {
 
         final outputBuffer =
             TensorBuffer.createFixedSize(fRipo.outputShape, fRipo.outputType);
-        interpreter.run(inputImage.buffer, outputBuffer.getBuffer());
+        final array = outputBuffer.getDoubleList();
+        final copy = array.map((value) => value.toStringAsFixed(4)).toList();
+        print('jaba$copy');
+        final highest = array.reduce(max);
+        final maxIndex = array.indexOf(highest);
+
+        print('Disease: $maxIndex');
+        final String maxString = labelDs[maxIndex];
+        print('Disease: $maxString');
+
+        fRipo.interpreter.run(inputImage.buffer, outputBuffer.getBuffer());
         print('OutputBuffer: ${outputBuffer.getDoubleList()}]');
 
-        await Future.delayed(
-          const Duration(seconds: 3),
-        );
-        emit(const FruitTesterLoaded(greeting: 'Hey pal'));
+        List<ClassifierCategory> postProcessOutput(TensorBuffer outputBuffer) {
+          final postProcessNormalizeOp = NormalizeOp(0, 1);
+          final probabilityProcessor =
+              TensorProcessorBuilder().add(postProcessNormalizeOp).build();
+          final labeledResult = TensorLabel.fromList(
+              labelDs, probabilityProcessor.process(outputBuffer));
+          final categoryList = <ClassifierCategory>[];
+          labeledResult.getMapWithFloatValue().forEach((key, value) {
+            final category = ClassifierCategory(key, value);
+            categoryList.add(category);
+            debugPrint('label: ${category.label}, score:${category.score}');
+          });
+          categoryList.sort((a, b) => (b.score > a.score ? 1 : -1));
+          return categoryList;
+        }
+
+        Future<ClassifierCategory> predict(image) async {
+          final inpoutImage = preProcessInput(image);
+          final outputBuffer =
+              TensorBuffer.createFixedSize(fRipo.outputShape, fRipo.outputType);
+          fRipo.interpreter.run(inpoutImage.buffer, outputBuffer.buffer);
+          final resultCategories = postProcessOutput(outputBuffer);
+          final topResult = resultCategories.first;
+          final topScore = topResult.score;
+          final topLabel = topResult.label;
+          final formattedProbability = (topScore * 100).toStringAsFixed(2);
+          debugPrint('Top category: $formattedProbability');
+
+          debugPrint('Top category: $topResult');
+
+          emit(FruitTesterLoaded(
+              topLabel: topLabel, topScore: formattedProbability));
+          return topResult;
+        }
+
+        await predict(convertedImage);
       } catch (e, stackTrace) {
         print('${e.toString()} stacktrace: $stackTrace');
       }

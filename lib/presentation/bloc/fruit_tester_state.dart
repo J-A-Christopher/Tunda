@@ -12,10 +12,11 @@ class FruitTesterInitial extends FruitTesterState {}
 class FruitTesterLoading extends FruitTesterState {}
 
 class FruitTesterLoaded extends FruitTesterState {
-  final String greeting;
-  const FruitTesterLoaded({required this.greeting});
+  final String topScore;
+  final String topLabel;
+  const FruitTesterLoaded({required this.topLabel, required this.topScore});
   @override
-  List<Object> get props => [greeting];
+  List<Object> get props => [topScore, topLabel];
 }
 
 class FruitTesterError extends FruitTesterState {}

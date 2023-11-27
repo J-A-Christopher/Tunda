@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -17,27 +16,26 @@ class TundaWidget extends StatefulWidget {
 class _TundaWidgetState extends State<TundaWidget> {
   XFile? pickedImage;
   File? selectedImg;
+  bool isLoading = false;
 
   Future<void> _takePicture() async {
     pickedImage = await ImagePicker().pickImage(source: ImageSource.camera);
     if (pickedImage != null) {
-      Uint8List bytes = await pickedImage!.readAsBytes();
-      //final imageBytes = await pickedImage!.readAsBytes();
-      // if (context.mounted) {
       selectedImg = File(pickedImage!.path);
-      //Uint8List bytes = await selectedImg!.readAsBytes();
+
       img.Image? image = img.decodeImage(selectedImg!.readAsBytesSync());
       print(image!.height);
       if (context.mounted) {
         context.read<FruitTesterBloc>().add(LoadData(convertedImage: image));
+
+        setState(() {
+          isLoading = true;
+        });
       }
-      // context
-      //     .read<TundaBloc>()
-      //     .add(GetResultFromModel(imageFile: selectedImg!));
-      // }
 
       setState(() {
         selectedImg = File(pickedImage!.path);
+        isLoading = false;
       });
     }
   }
@@ -49,19 +47,24 @@ class _TundaWidgetState extends State<TundaWidget> {
       padding: const EdgeInsets.all(8.0),
       child: Column(
         children: [
-          Container(
-            height: mediaQuery.height * 0.4,
-            width: double.infinity,
-            decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
-            child: pickedImage == null
-                ? const Center(
-                    child: Text('Take a picture'),
-                  )
-                : Image.file(
-                    selectedImg!,
-                    fit: BoxFit.cover,
-                  ),
-          ),
+          isLoading == true
+              ? const Center(
+                  child: CircularProgressIndicator(),
+                )
+              : Container(
+                  height: mediaQuery.height * 0.4,
+                  width: double.infinity,
+                  decoration:
+                      BoxDecoration(border: Border.all(color: Colors.grey)),
+                  child: pickedImage == null
+                      ? const Center(
+                          child: Text('Take a picture'),
+                        )
+                      : Image.file(
+                          selectedImg!,
+                          fit: BoxFit.cover,
+                        ),
+                ),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: ElevatedButton(
@@ -77,7 +80,20 @@ class _TundaWidgetState extends State<TundaWidget> {
               );
             }
             if (state is FruitTesterLoaded) {
-              return Text(state.greeting);
+              return Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      'Classification Type: ${state.topLabel}',
+                      style: const TextStyle(fontSize: 25),
+                    ),
+                    Text(
+                      'Accuracy Level: ${state.topScore}%',
+                      style: const TextStyle(fontSize: 15),
+                    ),
+                  ],
+                ),
+              );
             }
             return const SizedBox.shrink();
           })

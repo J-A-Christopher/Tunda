@@ -4,7 +4,7 @@ class LabelDataSource {
   Future<List<String>> loadLabels() async {
     final rawLabels = await FileUtil.loadLabels('assets/labels.txt');
     //debugPrint('Labels: $labels');
-    print('Labels: $rawLabels');
+    print('Labels: ${rawLabels[0]}');
     return rawLabels;
   }
 }

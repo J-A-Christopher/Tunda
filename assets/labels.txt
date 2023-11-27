@@ -1,1 +1,4 @@
-"healthy", "multiple_diseases", "rust", "scab"
+healthy
+multiple_diseases
+rust 
+scab
